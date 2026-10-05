@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Handleliste</title>
+<meta name="theme-color" content="#2f6b4f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Handleliste">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1>Handleliste</h1>
+    <div class="sub" id="weekLabel"></div>
+  </div>
+  </header>
+
+<main>
+  <section id="tab-uke" class="tab active">
+    <div class="card">
+      <h2>Middager denne uka</h2>
+      <p class="hint">Velg dagene dere trenger middag. Forslagene bygger på hva dere pleier å spise og hvilke dager.</p>
+      <div class="days" id="planDays"></div>
+      <div id="planList"></div>
+      <button class="ghost" id="replanBtn">Nytt forslag</button>
+    </div>
+    <div class="card">
+      <h2>Faste varer</h2>
+      <p class="hint">Huket av: kommer på listen nesten hver uke, eller det er en stund siden sist.</p>
+      <div id="stapleSuggest"></div>
+    </div>
+    <div class="card">
+      <label class="row"><input type="checkbox" id="kosToggle" checked> <span><b>Helgekos</b> — lørdagsgodt, chips, dip, cola</span></label>
+    </div>
+    <div class="sticky-cta"><button class="primary" id="planToBasket">Legg uka i handlekurven</button></div>
+  </section>
+
+  <section id="tab-middag" class="tab">
+    <div class="grid" id="dinnerGrid"></div>
+    <h3 class="sect">Andre pakker</h3>
+    <div class="grid" id="extraGrid"></div>
+  </section>
+
+  <section id="tab-varer" class="tab">
+    <input class="search" id="stapleSearch" placeholder="Søk eller skriv ny vare …" autocomplete="off">
+    <div id="stapleCats"></div>
+  </section>
+
+  <section id="tab-kurv" class="tab">
+    <div class="card" id="basketCard">
+      <div class="basket-head"><h2>Handlekurv</h2><button class="link" id="clearBtn">Tøm</button></div>
+      <ul id="basketList" class="basket"></ul>
+      <form id="addOwn" class="addown"><input id="ownInput" placeholder="Legg til egen vare …" autocomplete="off"><button>Legg til</button></form>
+    </div>
+    <div class="sticky-cta col">
+      <button class="primary" id="sendBtn">Kopier liste</button>
+      <button class="ghost" id="copyBtn">Del …</button>
+    </div>
+    <p class="hint center">Åpne «Handleliste» i To Do, trykk «Legg til en oppgave», lim inn og velg å legge til som separate oppgaver.</p>
+  </section>
+</main>
+
+<nav class="tabs">
+  <button data-tab="uke" class="active">Uka</button>
+  <button data-tab="middag">Middager</button>
+  <button data-tab="varer">Varer</button>
+  <button data-tab="kurv">Kurv <span class="badge" id="badge">0</span></button>
+</nav>
+
+<div class="sheet-bg" id="sheetBg"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
+<div class="toast" id="toast"></div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
