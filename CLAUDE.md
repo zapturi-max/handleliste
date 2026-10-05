@@ -16,7 +16,7 @@ Ingen build, ingen rammeverk, ingen backend. Rene filer i repo-roten:
 |---|---|
 | `index.html` | Skall: header, 4 faner (Uka, Middager, Varer, Kurv), bottom sheet, toast |
 | `app.js` | All logikk i én IIFE. Vanilla JS, `el()`-hjelper for DOM |
-| `data.js` | `window.DINNERS`, `window.EXTRAS`, `window.STAPLES` – her endres innhold |
+| `data.js` | `window.DINNERS`, `window.EXTRAS`, `window.STAPLES`, `window.AISLES` – her endres innhold |
 | `styles.css` | CSS-tokens på `:root`, mørk modus via `prefers-color-scheme`, iOS safe-area |
 | `sw.js` | Service worker, nett-først med cache-fallback. **Bump `CACHE`-versjonen ved hver endring** |
 | `manifest.webmanifest`, `icons/` | PWA / «Legg til på Hjem-skjerm» |
