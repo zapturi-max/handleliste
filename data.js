@@ -116,3 +116,23 @@ window.STAPLES = [
   { cat: "Voksne", items: [
     { n: "Snus", p: .33 }, { n: "Snus 2", p: .13 }, { n: "Øl", p: .05 } ] },
 ];
+
+// Butikkrekkefølge for kurven og listen til To Do.
+// names = eksakte varenavn, words = deler av ord for varer som ikke står i names.
+// Varer som ikke treffer noe havner til slutt under «Resten».
+window.AISLES = [
+  { cat: "Frukt og grønt",
+    names: ["agurk", "eple", "banan", "salat", "paprika", "druer", "appelsin", "poteter", "gulrøtter"],
+    words: ["frukt", "grønt", "salat", "potet", "gulrot", "tomater", "brokkoli", "avokado", "sitron", "pære", "melon"] },
+  { cat: "Kjøtt og pålegg",
+    names: ["salami", "skinka", "servelat", "leverpostei", "pepperoni", "hamburger", "makrell i tomat", "gyros kjøtt"],
+    words: ["kjøtt", "kylling", "biff", "bacon", "pølser", "kotelett", "svin", "kalkun", "pålegg"] },
+  { cat: "Brød og frokost",
+    names: ["pølsebrød", "hamburgerbrød", "rundstykker", "taco lefser", "frokostblanding", "granola", "havregryn",
+      "sjokolade pålegg", "nugatti", "honning på tube"],
+    words: ["brød", "rundstykk", "lefse", "frokost", "gryn", "müsli"] },
+  { cat: "Meieri",
+    names: ["melk", "smøre smør", "graddost", "egg", "rømme", "yoghurt", "små yoghurter", "brunost", "vanilje kesam",
+      "revet ost", "revet ost lasagne", "ost"],
+    words: ["melk", "yoghurt", "rømme", "smør", "kesam", "fløte", "ost"] },
+];

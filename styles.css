@@ -54,6 +54,14 @@ h3.sect{font-size:15px;color:var(--muted);margin:18px 0 8px}
 .qty{display:flex;align-items:center;gap:4px}
 .qty button{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--chip)}
 .qty span{min-width:20px;text-align:center;font-weight:600}
+.basket li.aisle{display:block;padding:12px 0 4px;border-top:0;font-size:13px;font-weight:600;color:var(--muted)}
+.field{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);margin-bottom:6px}
+.edit-item{border-top:1px solid var(--line);padding:10px 0}
+.edit-top{display:flex;gap:8px;align-items:flex-start}
+.edit-top .field{flex:1}
+.edit-flags{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.edit-flags .qty{margin-left:auto}
+.sheet .actions .link{padding:10px 0}
 .addown{display:flex;gap:8px;margin-top:8px}
 .addown input{flex:1;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg)}
 .addown button{border:0;border-radius:10px;background:var(--chip);padding:0 14px}

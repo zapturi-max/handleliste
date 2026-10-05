@@ -21,14 +21,34 @@ const WEEK = 7 * 864e5;
 const norm = s => s.toLowerCase().replace(/\(.*?\)/g, "").replace(/^\d+\s*x\s*/, "").replace(/\s*x\s*\d+$/, "")
   .replace(/[^a-zæøå0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+// Middager = data.js + egne endringer på denne telefonen (hl.myDinners: id -> middag, hl.hidden: skjulte id-er)
+let myDinners = store.get("myDinners", {}), hidden = store.get("hidden", []);
+let DINNERS = [];
+function loadDinners() {
+  const base = window.DINNERS.map(d => myDinners[d.id] || d);
+  const own = Object.values(myDinners).filter(d => !window.DINNERS.some(b => b.id === d.id));
+  DINNERS = [...base, ...own].filter(d => !hidden.includes(d.id));
+}
+loadDinners();
 const dinnerById = id => [...DINNERS, ...EXTRAS].find(d => d.id === id);
+
+// Butikkrekkefølge (AISLES i data.js); ukjente varer til slutt
+function aisleOf(n) {
+  const k = norm(n);
+  let i = AISLES.findIndex(a => a.names.includes(k));
+  if (i < 0) i = AISLES.findIndex(a => a.words.some(w => k.includes(w)));
+  return i < 0 ? AISLES.length : i;
+}
+const aisleName = i => AISLES[i]?.cat || "Resten";
+const sortedBasket = () => basket.map((b, i) => ({ b, i, a: aisleOf(b.n) })).sort((x, y) => x.a - y.a || x.i - y.i);
 
 // ---------- state ----------
 let basket = store.get("basket", []);        // [{n, q, tag?, from?}]
 let history = store.get("history", { d: {}, s: {} }); // sist sendt: d=middag-id, s=vare-navn -> ms
 let planDays = store.get("planDays", ["man", "tir", "ons", "fre", "lør"]);
 let plan = store.get("plan", null);          // {week, rows:[{day,id}]}
-let qty = store.get("qty", {});              // valgt antall per fast vare: norm(navn) -> q
+let qty = store.get("qty", {});
+let reverse = store.get("reverse", false);     // snu rekkefølgen til To Do hvis nye oppgaver havner øverst              // valgt antall per fast vare: norm(navn) -> q
 
 const stapleQty = s => qty[norm(s.n)] || s.q || 1;
 
@@ -84,7 +104,7 @@ function stapleSuggestions() {
 
 // ---------- render: Uke ----------
 function renderPlan() {
-  if (!plan || plan.week !== weekKey() || plan.rows.length !== planDays.length || plan.rows.some(r => !planDays.includes(r.day))) makePlan();
+  if (!plan || plan.week !== weekKey() || plan.rows.length !== planDays.length || plan.rows.some(r => !planDays.includes(r.day) || !dinnerById(r.id))) makePlan();
   const days = $("#planDays"); days.replaceChildren(...DAYS.map(d => el("button", {
     class: "chip" + (planDays.includes(d) ? " on" : ""), onclick: () => {
       planDays = planDays.includes(d) ? planDays.filter(x => x !== d) : [...planDays, d];
@@ -161,6 +181,7 @@ function tile(d) {
     d.freq != null ? el("div", { class: "ins" }, `${d.freq} uker siste år`) : null);
 }
 function renderDinners() {
+  $("#newDinner").onclick = () => openEditor(null);
   $("#dinnerGrid").replaceChildren(...[...DINNERS].sort((a, b) => b.freq - a.freq).map(tile));
   $("#extraGrid").replaceChildren(...EXTRAS.map(tile));
 }
@@ -178,13 +199,70 @@ function openPackage(d) {
     isDinner ? el("p", { class: "hint" }, "Dag (valgfritt) – påføres hovedvaren, slik dere pleier: «Kjøttdeig (fredag)».") : null,
     dayRow, ...rows,
     el("div", { class: "actions" },
-      el("button", { class: "ghost", onclick: closeSheet }, "Avbryt"),
+      isDinner ? el("button", { class: "ghost", onclick: () => openEditor(d) }, "Rediger") : el("button", { class: "ghost", onclick: closeSheet }, "Avbryt"),
       el("button", { class: "primary", onclick: () => {
         let n = 0;
         $("#sheet").querySelectorAll("input:checked").forEach(c => { addItem(c.dataset.n, +c.dataset.q, c.dataset.main && day ? DAY_LONG[day] : null, d.name); n++; });
         if (isDinner) basket.forEach(b => b.from && b.from.includes(d.name) && (b.dinner = d.id));
         saveBasket(); closeSheet(); toast(`${d.name}: ${n} varer i kurven`);
       } }, "Legg i kurv"))));
+}
+
+// ---------- rediger middag ----------
+function openEditor(orig) {
+  const isBase = orig && window.DINNERS.some(b => b.id === orig.id);
+  const days = new Set(orig ? orig.days : []);
+  const items = orig ? orig.items.map(it => ({ ...it })) : [{ n: "", main: true }];
+  const name = el("input", { class: "field", placeholder: "Navn på middagen", value: orig ? orig.name : "" });
+  const dayRow = el("div", { class: "days" }, ...DAYS.map(x => el("button", { type: "button", class: "chip" + (days.has(x) ? " on" : ""), onclick: e => {
+    days.has(x) ? days.delete(x) : days.add(x); e.currentTarget.classList.toggle("on", days.has(x));
+  } }, cap(x))));
+  const list = el("div", {});
+  const flag = (it, k, label) => el("button", { type: "button", class: "chip" + (it[k] ? " on" : ""), onclick: e => { it[k] = !it[k]; e.currentTarget.classList.toggle("on", it[k]); } }, label);
+  const drawItems = () => list.replaceChildren(...items.map((it, i) => {
+    const num = el("span", {}, it.q || 1);
+    const step = d => () => { it.q = Math.max(1, (it.q || 1) + d); num.textContent = it.q; };
+    return el("div", { class: "edit-item" },
+      el("div", { class: "edit-top" },
+        el("input", { class: "field", placeholder: "Vare", value: it.n, oninput: e => it.n = e.target.value }),
+        el("button", { type: "button", class: "icon-btn", "aria-label": "Fjern vare", onclick: () => { items.splice(i, 1); drawItems(); } }, "Fjern")),
+      el("div", { class: "edit-flags" }, flag(it, "main", "Hovedvare"), flag(it, "opt", "Ofte hjemme"),
+        el("div", { class: "qty" }, el("button", { type: "button", onclick: step(-1), "aria-label": "Færre" }, "−"), num,
+          el("button", { type: "button", onclick: step(1), "aria-label": "Flere" }, "+"))));
+  }));
+  drawItems();
+  const save = () => {
+    const clean = items.filter(it => it.n.trim()).map(it => {
+      const o = { n: cap(it.n.trim()) };
+      if (it.q > 1) o.q = it.q; if (it.main) o.main = true; if (it.opt) o.opt = true; return o;
+    });
+    if (!name.value.trim()) return toast("Gi middagen et navn");
+    if (!clean.length) return toast("Legg til minst én vare");
+    const id = orig ? orig.id : "egen-" + Date.now().toString(36);
+    myDinners[id] = { id, name: name.value.trim(), freq: orig ? orig.freq : 4, days: DAYS.filter(x => days.has(x)), items: clean };
+    store.set("myDinners", myDinners); loadDinners(); renderDinners(); renderPlan(); closeSheet(); toast("Lagret");
+  };
+  const remove = () => {
+    if (!confirm(`Slette «${orig.name}» på denne telefonen?`)) return;
+    delete myDinners[orig.id]; if (isBase) hidden.push(orig.id);
+    store.set("myDinners", myDinners); store.set("hidden", hidden); loadDinners(); renderDinners(); renderPlan(); closeSheet(); toast("Slettet");
+  };
+  const reset = () => { delete myDinners[orig.id]; store.set("myDinners", myDinners); loadDinners(); renderDinners(); renderPlan(); closeSheet(); toast("Tilbakestilt"); };
+  openSheet(el("div", {},
+    el("h2", {}, orig ? "Rediger middag" : "Ny middag"),
+    name,
+    el("h3", { class: "sect" }, "Typiske dager"), dayRow,
+    el("h3", { class: "sect" }, "Varer"),
+    el("p", { class: "hint" }, "Hovedvare får dagen påført, f.eks. «Kjøttdeig (fredag)». Ofte hjemme er ikke huket av som standard."),
+    list,
+    el("button", { type: "button", class: "ghost", onclick: () => { items.push({ n: "" }); drawItems(); list.lastChild.querySelector("input").focus(); } }, "Legg til vare"),
+    el("div", { class: "actions" },
+      el("button", { class: "ghost", onclick: closeSheet }, "Avbryt"),
+      el("button", { class: "primary", onclick: save }, "Lagre")),
+    orig ? el("div", { class: "actions" },
+      el("button", { class: "link", onclick: remove }, "Slett middag"),
+      isBase && myDinners[orig.id] ? el("button", { class: "link", onclick: reset }, "Tilbakestill til standard") : null) : null,
+    hidden.length && !orig ? el("button", { class: "link", onclick: () => { hidden = []; store.set("hidden", hidden); loadDinners(); renderDinners(); closeSheet(); toast("Slettede standardmiddager er tilbake"); } }, `Hent tilbake ${hidden.length} slettede standardmiddager`) : null));
 }
 
 // ---------- render: Varer ----------
@@ -211,15 +289,19 @@ function renderBadge() { const b = $("#badge"); b.textContent = basket.length; b
 function renderBasket() {
   const ul = $("#basketList");
   if (!basket.length) { ul.replaceChildren(el("li", { class: "empty" }, "Kurven er tom. Trykk på en middag eller en vare.")); return; }
-  ul.replaceChildren(...basket.map((b, i) => {
-    return el("li", {},
+  let last = -1;
+  ul.replaceChildren(...sortedBasket().flatMap(({ b, i, a }) => {
+    const head = a !== last ? el("li", { class: "aisle" }, aisleName(a)) : null; last = a;
+    return [head, el("li", {},
       el("div", { class: "t" }, b.n + (b.tag ? ` (${b.tag})` : ""),
         el("small", {}, (b.from || []).join(" · "))),
       el("div", { class: "qty" },
         el("button", { onclick: () => { b.q > 1 ? b.q-- : basket.splice(i, 1); saveBasket(); renderBasket(); }, "aria-label": "Færre" }, "−"),
         el("span", {}, b.q),
-        el("button", { onclick: () => { b.q++; saveBasket(); renderBasket(); }, "aria-label": "Flere" }, "+")));
+        el("button", { onclick: () => { b.q++; saveBasket(); renderBasket(); }, "aria-label": "Flere" }, "+")))].filter(Boolean);
   }));
+  const rev = $("#reverseToggle"); rev.checked = reverse;
+  rev.onchange = () => { reverse = rev.checked; store.set("reverse", reverse); };
 }
 $("#addOwn").onsubmit = e => { e.preventDefault(); const v = $("#ownInput").value.trim(); if (!v) return; addItem(v); $("#ownInput").value = ""; saveBasket(); renderBasket(); };
 $("#clearBtn").onclick = () => { if (basket.length && confirm("Tømme handlekurven?")) { basket = []; saveBasket(); renderBasket(); } };
@@ -245,7 +327,7 @@ $("#sheetBg").onclick = closeSheet;
 let toastT; function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), 2200); }
 
 // ---------- eksport ----------
-const listText = () => basket.map(itemTitle).join("\n");
+const listText = () => { const l = sortedBasket().map(x => itemTitle(x.b)); return (reverse ? l.reverse() : l).join("\n"); };
 function exported() { recordHistory(basket); store.set("lastExport", Date.now()); renderPlan(); renderStapleSuggest(); }
 // Snarveien «Handleliste» deler opp teksten per linje og legger hver vare i To Do
 $("#sendBtn").onclick = () => {
