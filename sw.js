@@ -1,4 +1,4 @@
-const CACHE = "handleliste-v1";
+const CACHE = "handleliste-v2";
 const FILES = ["./", "index.html", "styles.css", "app.js", "data.js", 
   "manifest.webmanifest", "icons/icon-192.png", "icons/apple-touch-icon.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))); self.skipWaiting(); });

@@ -59,6 +59,7 @@ h3.sect{font-size:15px;color:var(--muted);margin:18px 0 8px}
 .addown button{border:0;border-radius:10px;background:var(--chip);padding:0 14px}
 .sticky-cta{position:fixed;left:0;right:0;bottom:calc(58px + var(--safe-b));padding:10px 16px;background:linear-gradient(transparent,var(--bg) 30%);z-index:4;display:flex;gap:8px;max-width:640px;margin:0 auto}
 .sticky-cta.col{flex-direction:column}
+.sticky-cta .row{gap:8px;padding:0}
 .primary{flex:1;border:0;border-radius:12px;padding:14px;background:var(--acc);color:var(--acc-ink);font-weight:600;font-size:16px}
 .primary:disabled{opacity:.5}
 .ghost{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:11px 14px;font-size:15px;width:100%}

@@ -193,11 +193,6 @@ function renderBasket() {
 }
 $("#addOwn").onsubmit = e => { e.preventDefault(); const v = $("#ownInput").value.trim(); if (!v) return; addItem(v); $("#ownInput").value = ""; saveBasket(); renderBasket(); };
 $("#clearBtn").onclick = () => { if (basket.length && confirm("Tømme handlekurven?")) { basket = []; saveBasket(); renderBasket(); } };
-$("#copyBtn").onclick = async () => {
-  const txt = basket.map(itemTitle).join("\n");
-  try { await navigator.clipboard.writeText(txt); toast("Kopiert – lim inn i To Do"); }
-  catch { openSheet(el("div", {}, el("h2", {}, "Kopier listen"), el("textarea", { style: "width:100%;height:50vh" }, txt))); }
-};
 
 function recordHistory(items) {
   const now = Date.now();
@@ -222,12 +217,18 @@ let toastT; function toast(msg) { const t = $("#toast"); t.textContent = msg; t.
 // ---------- eksport ----------
 const listText = () => basket.map(itemTitle).join("\n");
 function exported() { recordHistory(basket); store.set("lastExport", Date.now()); renderPlan(); renderStapleSuggest(); }
-$("#sendBtn").onclick = async () => {
+// Snarveien «Handleliste» deler opp teksten per linje og legger hver vare i To Do
+$("#sendBtn").onclick = () => {
   if (!basket.length) return toast("Kurven er tom");
-  try { await navigator.clipboard.writeText(listText()); exported(); toast("Kopiert – lim inn i «Legg til en oppgave» i To Do"); }
-  catch { openSheet(el("div", {}, el("h2", {}, "Kopier listen"), el("p", { class: "hint" }, "Marker alt og kopier."), el("textarea", { style: "width:100%;height:50vh" }, listText()))); exported(); }
+  location.href = "shortcuts://run-shortcut?name=Handleliste&input=text&text=" + encodeURIComponent(listText());
+  exported();
 };
 $("#copyBtn").onclick = async () => {
+  if (!basket.length) return toast("Kurven er tom");
+  try { await navigator.clipboard.writeText(listText()); exported(); toast("Kopiert"); }
+  catch { openSheet(el("div", {}, el("h2", {}, "Kopier listen"), el("p", { class: "hint" }, "Marker alt og kopier."), el("textarea", { style: "width:100%;height:50vh" }, listText()))); exported(); }
+};
+$("#shareBtn").onclick = async () => {
   if (!basket.length) return toast("Kurven er tom");
   if (navigator.share) { try { await navigator.share({ text: listText() }); exported(); } catch {} }
   else toast("Deling støttes ikke her – bruk Kopier");
