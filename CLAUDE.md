@@ -22,7 +22,8 @@ Ingen build, ingen rammeverk, ingen backend. Rene filer i repo-roten:
 | `manifest.webmanifest`, `icons/` | PWA / «Legg til på Hjem-skjerm» |
 
 Tilstand lagres kun i `localStorage` (prefiks `hl.`), per telefon:
-`basket`, `history` (`d`: middag-id → ms, `s`: normalisert varenavn → ms), `plan`, `planDays`, `qty` (valgt antall per fast vare).
+`basket`, `history` (`d`: middag-id → ms, `s`: normalisert varenavn → ms), `plan`, `planDays`, `qty` (valgt antall per fast vare,
+`norm(navn)` → q), `myDinners` (egne/endrede middager, id → middag), `hidden` (slettede standardmiddager), `reverse` (snu rekkefølge til To Do).
 
 ## Integrasjon med To Do – viktige beslutninger
 
@@ -50,6 +51,8 @@ Middag:
 - `freq` = antall uker siste 12 mnd middagen var på listen. `days` = typiske dager (`man tir ons tor fre lør søn`).
 - `EXTRAS` = pakker som ikke er middager (Helgekos, Frokost og matpakke, Minsten).
 - `STAPLES` = kategorier med varer; `p` = andel av ukene (siste 52) varen var på listen.
+- `AISLES` = butikkrekkefølge: frukt og grønt, kjøtt og pålegg, brød og frokost, meieri, resten.
+  `names` = eksakte normaliserte navn (sjekkes først), `words` = delstrenger. Ingen treff → «Resten».
 
 Datagrunnlag: eksport av 6 729 oppgaver fra To Do-listen (juni 2022 – okt 2026), analysert på
 frekvens og samforekomst (varer opprettet innen ±4 t). Tallene er et øyeblikksbilde og trenger ikke være eksakte.
@@ -61,6 +64,14 @@ frekvens og samforekomst (varer opprettet innen ±4 t). Tallene er et øyeblikks
 - **`norm()`** fjerner antall-prefiks/suffiks, parenteser og tegn – brukes til nøkler og historikk.
 - **Ukeplan** (`pickDinner`): vektet tilfeldig valg. Vekt = `freq` × 4 hvis dagen passer `days`, ellers × 0.3. Straff hvis laget < 1 uke (× 0.05) eller < 2.5 uker (× 0.35) siden. Ingen duplikater i samme uke.
 - **Faste varer forslag** (`stapleSuggestions`): huket av hvis `p ≥ 0.3` (og ikke sendt siste uke), eller forfalt (`uker siden ≥ 0.85 / p`). Viser huket av + 6 til, resten bak «Vis flere».
+- **Butikkrekkefølge** (`aisleOf`, `sortedBasket`): kurven vises gruppert etter `AISLES`, og `listText()` sender i samme
+  rekkefølge (snudd hvis `reverse`). Innenfor en gruppe beholdes rekkefølgen varene ble lagt til i.
+- **Egne middager** (`loadDinners`, `openEditor`): `DINNERS` i `app.js` er en lokal `let` = `window.DINNERS` med
+  overstyringer fra `myDinners`, pluss egne (id `egen-…`), minus `hidden`. Lagres kun per telefon (bevisst valg).
+  En overstyrt standardmiddag skjuler senere endringer i `data.js` til brukeren trykker «Tilbakestill til standard».
+- **Bytt middag** (`openDinnerPicker`): liste delt i Hverdags-/Helgemiddager. Helg = `days` kun fre/lør/søn.
+  Gjeldende dags gruppe vises først. «Tilfeldig forslag» bruker `pickDinner`.
+- **Faste varer**: −/+ per vare i Uka, lagres i `qty` og brukes også fra Varer-fanen.
 - **Historikk** oppdateres når listen sendes/kopieres/deles (`exported()`), ikke når noe legges i kurven.
 
 ## Regler
@@ -88,6 +99,8 @@ På telefonen: lukk appen helt og åpne igjen for å få ny versjon.
 
 ## Mulige neste steg (ikke bestilt)
 
-- Redigere/lage egne middagspakker i appen (i dag: rediger `data.js`).
+- Spørre «Tømme kurven?» etter sending, og advare hvis uka legges i kurven to ganger (antall summeres).
+- «Angre» etter sending (historikk oppdateres i dag selv om snarveien avbrytes).
+- Foreslå egne varer som er lagt inn flere ganger under «Egne varer».
 - Felles historikk mellom telefonene (krever backend – avklar først, To Do skal fortsatt være felleslisten).
 - Sesongvarer (17. mai, jul, grill).
