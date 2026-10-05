@@ -28,6 +28,9 @@ let basket = store.get("basket", []);        // [{n, q, tag?, from?}]
 let history = store.get("history", { d: {}, s: {} }); // sist sendt: d=middag-id, s=vare-navn -> ms
 let planDays = store.get("planDays", ["man", "tir", "ons", "fre", "lør"]);
 let plan = store.get("plan", null);          // {week, rows:[{day,id}]}
+let qty = store.get("qty", {});              // valgt antall per fast vare: norm(navn) -> q
+
+const stapleQty = s => qty[norm(s.n)] || s.q || 1;
 
 function saveBasket() { store.set("basket", basket); renderBadge(); if ($("#tab-kurv").classList.contains("active")) renderBasket(); renderStapleChipsState(); }
 function addItem(n, q = 1, tag = null, from = null) {
@@ -107,10 +110,22 @@ function openDinnerPicker(i) {
 function renderStapleSuggest() {
   const wrap = $("#stapleSuggest"), sug = stapleSuggestions();
   const on = sug.filter(s => s.on).length;
-  const rows = sug.map((s, i) => el("label", { class: "row", style: i >= on + 6 ? "display:none" : null },
-    el("input", { type: "checkbox", "data-n": s.n, "data-q": s.q || 1, checked: s.on }),
-    el("span", {}, (s.q > 1 ? s.q + "x " : "") + s.n),
-    el("span", { class: "meta" }, s.ws !== Infinity ? `${Math.round(s.ws)} u. siden` : `${Math.round(s.p * 100)} % av ukene`)));
+  const rows = sug.map((s, i) => {
+    const cb = el("input", { type: "checkbox", "data-n": s.n, "data-q": stapleQty(s), checked: s.on });
+    const num = el("span", {}, stapleQty(s));
+    // Husker valgt antall per vare; trykk på −/+ skal ikke hake av/på raden
+    const step = d => e => {
+      e.preventDefault();
+      const q = Math.max(1, +cb.dataset.q + d);
+      cb.dataset.q = num.textContent = q; qty[norm(s.n)] = q; store.set("qty", qty);
+    };
+    return el("label", { class: "row", style: i >= on + 6 ? "display:none" : null }, cb,
+      el("span", {}, s.n),
+      el("span", { class: "meta" }, s.ws !== Infinity ? `${Math.round(s.ws)} u. siden` : `${Math.round(s.p * 100)} % av ukene`),
+      el("div", { class: "qty" },
+        el("button", { type: "button", onclick: step(-1), "aria-label": "Færre" }, "−"), num,
+        el("button", { type: "button", onclick: step(1), "aria-label": "Flere" }, "+")));
+  });
   wrap.replaceChildren(...rows);
   if (rows.length > on + 6) wrap.append(el("button", { class: "ghost", onclick: e => { rows.forEach(r => r.style.display = ""); e.currentTarget.remove(); } }, `Vis ${rows.length - on - 6} flere`));
 }
@@ -162,7 +177,7 @@ function renderStaples(filter = "") {
   const f = norm(filter), wrap = $("#stapleCats");
   const cats = STAPLES.map(c => ({ cat: c.cat, items: c.items.filter(i => !f || norm(i.n).includes(f)) })).filter(c => c.items.length);
   const kids = cats.map(c => el("div", { class: "cat" }, el("h3", {}, c.cat),
-    el("div", { class: "chips" }, ...[...c.items].sort((a, b) => b.p - a.p).map(i => el("button", { class: "chip", "data-n": i.n, onclick: () => { addItem(i.n, 1, null, "Faste varer"); saveBasket(); toast(`+ ${i.n}`); } }, i.n)))));
+    el("div", { class: "chips" }, ...[...c.items].sort((a, b) => b.p - a.p).map(i => el("button", { class: "chip", "data-n": i.n, onclick: () => { addItem(i.n, stapleQty(i), null, "Faste varer"); saveBasket(); toast(`+ ${i.n}`); } }, i.n)))));
   if (f) kids.unshift(el("button", { class: "ghost", style: "margin-bottom:12px", onclick: () => { addItem(filter, 1); saveBasket(); toast(`+ ${cap(filter)}`); $("#stapleSearch").value = ""; renderStaples(); } }, `Legg til «${cap(filter.trim())}»`));
   wrap.replaceChildren(...kids); renderStapleChipsState();
 }
