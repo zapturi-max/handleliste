@@ -98,14 +98,29 @@ function renderPlan() {
       el("div", { class: "d" }, cap(r.day)),
       el("div", { class: "n", onclick: () => openDinnerPicker(i) }, d.name,
         el("small", {}, last ? `Sist: ${Math.round(weeksSince(last))} uker siden` : d.items.filter(x => !x.opt).map(x => x.n).slice(0, 4).join(", "))),
-      el("button", { class: "icon-btn", onclick: () => { const ex = new Set(plan.rows.map(x => x.id)); plan.rows[i].id = pickDinner(r.day, ex).id; store.set("plan", plan); renderPlan(); } }, "Bytt"));
+      el("button", { class: "icon-btn", onclick: () => openDinnerPicker(i) }, "Bytt"));
   }));
 }
+// Helgemiddag = typiske dager kun fre/lør/søn
+const isWeekend = d => d.days.every(x => ["fre", "lør", "søn"].includes(x));
 function openDinnerPicker(i) {
   const r = plan.rows[i];
+  const choose = id => { plan.rows[i].id = id; store.set("plan", plan); closeSheet(); renderPlan(); };
+  const usedOn = id => plan.rows.find((x, j) => j !== i && x.id === id)?.day;
+  const pick = d => {
+    const other = usedOn(d.id), last = history.d[d.id];
+    return el("button", { class: "pick" + (d.id === r.id ? " on" : ""), onclick: () => choose(d.id) },
+      el("span", {}, d.name),
+      el("small", {}, other ? `Satt på ${DAY_LONG[other]}` : last ? `${Math.round(weeksSince(last))} u. siden` : ""));
+  };
+  const sect = (title, list) => [el("h3", { class: "sect" }, title), ...[...list].sort((a, b) => b.freq - a.freq).map(pick)];
+  const helg = sect("Helgemiddager", DINNERS.filter(isWeekend)), hverdag = sect("Hverdagsmiddager", DINNERS.filter(d => !isWeekend(d)));
+  const random = () => { const ex = new Set(plan.rows.map(x => x.id)); choose(pickDinner(r.day, ex).id); };
   openSheet(el("div", {}, el("h2", {}, `Middag ${DAY_LONG[r.day]}`),
-    ...DINNERS.map(d => el("button", { class: "ghost", style: "margin-bottom:6px;text-align:left", onclick: () => { plan.rows[i].id = d.id; store.set("plan", plan); closeSheet(); renderPlan(); } },
-      d.name + (d.id === r.id ? "  ✓" : "")))));
+    ...(["fre", "lør", "søn"].includes(r.day) ? [...helg, ...hverdag] : [...hverdag, ...helg]),
+    el("div", { class: "actions" },
+      el("button", { class: "ghost", onclick: closeSheet }, "Avbryt"),
+      el("button", { class: "ghost", onclick: random }, "Tilfeldig forslag"))));
 }
 function renderStapleSuggest() {
   const wrap = $("#stapleSuggest"), sug = stapleSuggestions();

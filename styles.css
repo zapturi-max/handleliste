@@ -77,6 +77,10 @@ h3.sect{font-size:15px;color:var(--muted);margin:18px 0 8px}
 .sheet h2{margin-bottom:8px}
 .sheet .actions{display:flex;gap:8px;margin-top:12px}
 .sheet .actions .ghost{width:auto}
+.pick{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;text-align:left;margin-bottom:6px;
+  border:1px solid var(--line);background:var(--card);border-radius:12px;padding:13px 14px;font-size:15px;color:inherit}
+.pick small{color:var(--muted);font-size:12px;flex:none}
+.pick.on{border-color:var(--acc);background:var(--acc-soft);font-weight:600}
 .toast{position:fixed;left:50%;bottom:calc(140px + var(--safe-b));transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);
   padding:10px 16px;border-radius:999px;font-size:14px;opacity:0;transition:.2s;z-index:30;pointer-events:none;max-width:90vw;text-align:center}
 .toast.show{opacity:1;transform:translateX(-50%)}
