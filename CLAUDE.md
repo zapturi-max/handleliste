@@ -23,7 +23,8 @@ Ingen build, ingen rammeverk, ingen backend. Rene filer i repo-roten:
 
 Tilstand lagres kun i `localStorage` (prefiks `hl.`), per telefon:
 `basket`, `history` (`d`: middag-id → ms, `s`: normalisert varenavn → ms), `plan`, `planDays`, `qty` (valgt antall per fast vare,
-`norm(navn)` → q), `myDinners` (egne/endrede middager, id → middag), `hidden` (slettede standardmiddager), `reverse` (snu rekkefølge til To Do).
+`norm(navn)` → q), `myDinners` (egne/endrede middager, id → middag), `hidden` (slettede standardmiddager), `reverse` (snu rekkefølge til To Do),
+`myStaples` (egne faste varer: `{n, cat, p, own}`).
 
 ## Integrasjon med To Do – viktige beslutninger
 
@@ -72,6 +73,8 @@ frekvens og samforekomst (varer opprettet innen ±4 t). Tallene er et øyeblikks
 - **Bytt middag** (`openDinnerPicker`): liste delt i Hverdags-/Helgemiddager. Helg = `days` kun fre/lør/søn.
   Gjeldende dags gruppe vises først. «Tilfeldig forslag» bruker `pickDinner`.
 - **Faste varer**: −/+ per vare i Uka, lagres i `qty` og brukes også fra Varer-fanen.
+- **Egne faste varer** (`loadStaples`, `openNewStaple`): søk i Varer → «Lagre som fast vare» med kategori og
+  «Nesten hver uke» (p 0.7, huket av i Uka) / «Av og til» (p 0.15). `STAPLES` i `app.js` er lokal `let` = data.js + `myStaples`.
 - **Historikk** oppdateres når listen sendes/kopieres/deles (`exported()`), ikke når noe legges i kurven.
 
 ## Regler

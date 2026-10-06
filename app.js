@@ -30,6 +30,15 @@ function loadDinners() {
   DINNERS = [...base, ...own].filter(d => !hidden.includes(d.id));
 }
 loadDinners();
+
+// Faste varer = data.js + egne på denne telefonen (hl.myStaples: [{n, cat, p, own}])
+let myStaples = store.get("myStaples", []);
+let STAPLES = [];
+function loadStaples() {
+  STAPLES = window.STAPLES.map(c => ({ cat: c.cat, items: [...c.items, ...myStaples.filter(s => s.cat === c.cat)] }));
+}
+loadStaples();
+const stapleExists = n => STAPLES.some(c => c.items.some(i => norm(i.n) === norm(n)));
 const dinnerById = id => [...DINNERS, ...EXTRAS].find(d => d.id === id);
 
 // Butikkrekkefølge (AISLES i data.js); ukjente varer til slutt
@@ -270,9 +279,44 @@ function renderStaples(filter = "") {
   const f = norm(filter), wrap = $("#stapleCats");
   const cats = STAPLES.map(c => ({ cat: c.cat, items: c.items.filter(i => !f || norm(i.n).includes(f)) })).filter(c => c.items.length);
   const kids = cats.map(c => el("div", { class: "cat" }, el("h3", {}, c.cat),
-    el("div", { class: "chips" }, ...[...c.items].sort((a, b) => b.p - a.p).map(i => el("button", { class: "chip", "data-n": i.n, onclick: () => { addItem(i.n, stapleQty(i), null, "Faste varer"); saveBasket(); toast(`+ ${i.n}`); } }, i.n)))));
-  if (f) kids.unshift(el("button", { class: "ghost", style: "margin-bottom:12px", onclick: () => { addItem(filter, 1); saveBasket(); toast(`+ ${cap(filter)}`); $("#stapleSearch").value = ""; renderStaples(); } }, `Legg til «${cap(filter.trim())}»`));
+    el("div", { class: "chips" }, ...[...c.items].sort((a, b) => b.p - a.p).map(i => el("button", { class: "chip" + (i.own ? " own" : ""), "data-n": i.n, onclick: () => { addItem(i.n, stapleQty(i), null, "Faste varer"); saveBasket(); toast(`+ ${i.n}`); } }, i.n)))));
+  if (f) kids.unshift(el("div", { class: "row2" },
+    el("button", { class: "ghost", onclick: () => { addItem(filter, 1); saveBasket(); toast(`+ ${cap(filter)}`); $("#stapleSearch").value = ""; renderStaples(); } }, `Legg til «${cap(filter.trim())}»`),
+    stapleExists(filter) ? null : el("button", { class: "ghost", onclick: () => openNewStaple(filter) }, "Lagre som fast vare")));
+  if (!f && myStaples.length) kids.push(el("button", { class: "ghost", onclick: openMyStaples }, `Rediger egne varer (${myStaples.length})`));
   wrap.replaceChildren(...kids); renderStapleChipsState();
+}
+const FREQ = [{ label: "Nesten hver uke", p: 0.7 }, { label: "Av og til", p: 0.15 }];
+function openNewStaple(name) {
+  let cat = null, p = FREQ[0].p;
+  const choice = (list, get, set) => el("div", { class: "days" }, ...list.map(x => el("button", { type: "button", class: "chip", onclick: e => {
+    set(x); e.currentTarget.parentNode.querySelectorAll(".chip").forEach(c => c.classList.remove("on")); e.currentTarget.classList.add("on");
+  } }, get(x))));
+  const freqRow = choice(FREQ, x => x.label, x => p = x.p); freqRow.firstChild.classList.add("on");
+  openSheet(el("div", {},
+    el("h2", {}, `Ny fast vare: ${cap(name.trim())}`),
+    el("h3", { class: "sect" }, "Kategori"), choice(window.STAPLES, c => c.cat, c => cat = c.cat),
+    el("h3", { class: "sect" }, "Hvor ofte"), freqRow,
+    el("p", { class: "hint" }, "«Nesten hver uke» blir huket av automatisk i Uka."),
+    el("div", { class: "actions" },
+      el("button", { class: "ghost", onclick: closeSheet }, "Avbryt"),
+      el("button", { class: "primary", onclick: () => {
+        if (!cat) return toast("Velg en kategori");
+        myStaples.push({ n: cap(name.trim()), cat, p, own: true }); store.set("myStaples", myStaples); loadStaples();
+        $("#stapleSearch").value = ""; renderStaples(); renderStapleSuggest(); closeSheet(); toast(`${cap(name.trim())} lagret som fast vare`);
+      } }, "Lagre"))));
+}
+function openMyStaples() {
+  const draw = () => openSheet(el("div", {},
+    el("h2", {}, "Egne faste varer"),
+    ...myStaples.map((s, i) => el("div", { class: "row" },
+      el("span", {}, s.n, el("small", { class: "sub", style: "display:block" }, `${s.cat} · ${s.p >= 0.3 ? "nesten hver uke" : "av og til"}`)),
+      el("button", { class: "icon-btn", style: "margin-left:auto", onclick: () => {
+        myStaples.splice(i, 1); store.set("myStaples", myStaples); loadStaples(); renderStaples(); renderStapleSuggest();
+        myStaples.length ? draw() : closeSheet();
+      } }, "Fjern"))),
+    el("div", { class: "actions" }, el("button", { class: "ghost", onclick: closeSheet }, "Lukk"))));
+  draw();
 }
 function renderStapleChipsState() {
   document.querySelectorAll("#stapleCats .chip").forEach(c => {

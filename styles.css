@@ -42,6 +42,8 @@ h3.sect{font-size:15px;color:var(--muted);margin:18px 0 8px}
 .cat{margin-bottom:14px}.cat h3{font-size:14px;color:var(--muted);margin:6px 0}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chips .chip{padding:8px 12px;font-size:15px;background:var(--card)}
+.chips .chip.own{border-style:dashed}
+.row2{display:flex;gap:8px;margin-bottom:12px}
 .chips .chip.in{background:var(--acc-soft);border-color:var(--acc)}
 .chips .chip .q{font-weight:700;color:var(--acc);margin-left:4px}
 .basket-head{display:flex;justify-content:space-between;align-items:center}
